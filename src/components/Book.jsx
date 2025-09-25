@@ -3,11 +3,18 @@ import { pages } from "./UI";
 import {
   Bone,
   BoxGeometry,
+  Color,
+  MeshStandardMaterial,
   Skeleton,
+  SkinnedMesh,
   Uint16BufferAttribute,
   Vector3,
 } from "three";
 import { Float32BufferAttribute } from "three";
+import { useHelper } from "@react-three/drei";
+import { SkeletonHelper } from "three";
+import { useFrame } from "@react-three/fiber";
+import { degToRad } from "three/src/math/MathUtils.js";
 
 const PAGE_WIDTH = 1.28;
 const PAGE_HEIGHT = 1.71; // 4:3 aspect ratio
@@ -52,8 +59,33 @@ pageGeometry.setAttribute(
   new Float32BufferAttribute(skinWeights, 4)
 );
 
+const whiteColor = new Color("White");
+
+const pageMaterials = [
+  new MeshStandardMaterial({
+    color: whiteColor,
+  }),
+  new MeshStandardMaterial({
+    color: "#111",
+  }),
+  new MeshStandardMaterial({
+    color: whiteColor,
+  }),
+  new MeshStandardMaterial({
+    color: whiteColor,
+  }),
+  new MeshStandardMaterial({
+    color: "pink",
+  }),
+  new MeshStandardMaterial({
+    color: "blue",
+  }),
+];
+
 const Page = ({ number, front, back, ...props }) => {
   const group = useRef();
+
+  const skinnedMeshRef = useRef();
 
   const manualSkinnedMesh = useMemo(() => {
     const bones = [];
@@ -68,18 +100,40 @@ const Page = ({ number, front, back, ...props }) => {
       }
 
       if (i > 0) {
-        bones(i - 1).add(bone); // attach the new bone to the previous
+        bones[i - 1].add(bone); // attach the new bone to the previous
       }
     }
 
     const skeleton = new Skeleton(bones);
+
+    const materials = pageMaterials;
+    const mesh = new SkinnedMesh(pageGeometry, materials);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.frustumCulled = false;
+    mesh.add(skeleton.bones[0]);
+    mesh.bind(skeleton);
+    return mesh;
   }, []);
+
+  useHelper(skinnedMeshRef, SkeletonHelper, "red");
+
+  useFrame(() => {
+    if (!skinnedMeshRef.current) {
+      return;
+    }
+
+    const bones = skinnedMeshRef.current.skeleton.bones;
+
+    bones[2].rotation.y = degToRad(40);
+    bones[4].rotation.y = degToRad(-40);
+  });
 
   return (
     <group {...props} ref={group}>
-      <mesh scale={0.1}>
-        <primitive object={pageGeometry} attach={"geometry"} />
-        <meshBasicMaterial color="red" />
+      <mesh scale={1.1}>
+        <primitive object={manualSkinnedMesh} ref={skinnedMeshRef} />
+        {/* <meshBasicMaterial color="red" /> */}
       </mesh>
     </group>
   );
