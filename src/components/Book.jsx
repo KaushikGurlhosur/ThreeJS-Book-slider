@@ -1,6 +1,13 @@
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { pages } from "./UI";
-import { BoxGeometry } from "three";
+import {
+  Bone,
+  BoxGeometry,
+  Skeleton,
+  Uint16BufferAttribute,
+  Vector3,
+} from "three";
+import { Float32BufferAttribute } from "three";
 
 const PAGE_WIDTH = 1.28;
 const PAGE_HEIGHT = 1.71; // 4:3 aspect ratio
@@ -12,11 +19,62 @@ const pageGeometry = new BoxGeometry(
   PAGE_WIDTH,
   PAGE_HEIGHT,
   PAGE_DEPTH,
-  PAGE_SEGMENTS
+  PAGE_SEGMENTS,
+  2
+);
+
+pageGeometry.translate(PAGE_WIDTH / 2, 0, 0);
+
+const position = pageGeometry.attributes.position;
+
+const vertex = new Vector3();
+const skinIndexes = [];
+const skinWeights = [];
+
+for (let i = 0; i < position.count; i++) {
+  vertex.fromBufferAttribute(position, i); // get the vertex
+  const x = vertex.x; // get the x position of the vertex
+
+  const skinIndex = Math.max(0, Math.floor(x / SEGMENT_WIDTH));
+  let skinWeight = (x % SEGMENT_WIDTH) / SEGMENT_WIDTH; // calculate the skin weight
+
+  skinIndexes.push(skinIndex, skinIndex + 1, 0, 0); // set the skin indexes
+  skinWeights.push(1 - skinWeight, skinWeight, 0, 0); //
+}
+
+pageGeometry.setAttribute(
+  "skinIndex",
+  new Uint16BufferAttribute(skinIndexes, 4)
+);
+
+pageGeometry.setAttribute(
+  "skinWeight",
+  new Float32BufferAttribute(skinWeights, 4)
 );
 
 const Page = ({ number, front, back, ...props }) => {
   const group = useRef();
+
+  const manualSkinnedMesh = useMemo(() => {
+    const bones = [];
+    for (let i = 0; i <= PAGE_SEGMENTS; i++) {
+      let bone = new Bone();
+      bones.push(bone);
+
+      if (i === 0) {
+        bone.position.x = 0;
+      } else {
+        bone.position.x = SEGMENT_WIDTH;
+      }
+
+      if (i > 0) {
+        bones(i - 1).add(bone); // attach the new bone to the previous
+      }
+    }
+
+    const skeleton = new Skeleton(bones);
+  }, []);
+
   return (
     <group {...props} ref={group}>
       <mesh scale={0.1}>
