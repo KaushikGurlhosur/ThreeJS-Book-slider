@@ -11,10 +11,11 @@ import {
   Vector3,
 } from "three";
 import { Float32BufferAttribute } from "three";
-import { useHelper } from "@react-three/drei";
+import { useHelper, useTexture } from "@react-three/drei";
 import { SkeletonHelper } from "three";
 import { useFrame } from "@react-three/fiber";
 import { degToRad } from "three/src/math/MathUtils.js";
+import { roughness } from "three/examples/jsm/nodes/Nodes.js";
 
 const PAGE_WIDTH = 1.28;
 const PAGE_HEIGHT = 1.71; // 4:3 aspect ratio
@@ -83,6 +84,14 @@ const pageMaterials = [
 ];
 
 const Page = ({ number, front, back, ...props }) => {
+  const [picture, picture2, pictureRoughness] = useTexture([
+    `/textures/${front}.jpg`,
+    `/textures/${back}.jpg`,
+    ...(number === 0 || number === pages.length - 1
+      ? [`/textures/book-cover-roughness.jpg`]
+      : []),
+  ]);
+
   const group = useRef();
 
   const skinnedMeshRef = useRef();
@@ -106,7 +115,23 @@ const Page = ({ number, front, back, ...props }) => {
 
     const skeleton = new Skeleton(bones);
 
-    const materials = pageMaterials;
+    const materials = [
+      ...pageMaterials,
+      new MeshStandardMaterial({
+        color: whiteColor,
+        map: picture,
+        ...(number === 0
+          ? { roughnessMap: pictureRoughness }
+          : { roughness: 0.1 }),
+      }),
+      new MeshStandardMaterial({
+        color: whiteColor,
+        map: picture2,
+        ...(number === pages.length - 1
+          ? { roughnessMap: pictureRoughness }
+          : { roughness: 0.1 }),
+      }),
+    ];
     const mesh = new SkinnedMesh(pageGeometry, materials);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
@@ -114,9 +139,9 @@ const Page = ({ number, front, back, ...props }) => {
     mesh.add(skeleton.bones[0]);
     mesh.bind(skeleton);
     return mesh;
-  }, []);
+  }, [picture, picture2]);
 
-  useHelper(skinnedMeshRef, SkeletonHelper, "red");
+  //   useHelper(skinnedMeshRef, SkeletonHelper, "red");
 
   useFrame(() => {
     if (!skinnedMeshRef.current) {
@@ -125,8 +150,8 @@ const Page = ({ number, front, back, ...props }) => {
 
     const bones = skinnedMeshRef.current.skeleton.bones;
 
-    bones[2].rotation.y = degToRad(40);
-    bones[4].rotation.y = degToRad(-40);
+    // bones[2].rotation.y = degToRad(40);
+    // bones[4].rotation.y = degToRad(-40);
   });
 
   return (
