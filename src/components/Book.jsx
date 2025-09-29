@@ -1,5 +1,5 @@
 import { useMemo, useRef } from "react";
-import { pages } from "./UI";
+import { pageAtom, pages } from "./UI";
 import {
   Bone,
   BoxGeometry,
@@ -17,6 +17,7 @@ import { SkeletonHelper } from "three";
 import { useFrame } from "@react-three/fiber";
 import { degToRad } from "three/src/math/MathUtils.js";
 import { roughness } from "three/examples/jsm/nodes/Nodes.js";
+import { useAtom } from "jotai";
 
 const PAGE_WIDTH = 1.28;
 const PAGE_HEIGHT = 1.71; // 4:3 aspect ratio
@@ -78,7 +79,14 @@ const pageMaterials = [
   }),
 ];
 
-const Page = ({ number, front, back, ...props }) => {
+// Preloader
+pages.forEach((page) => {
+  useTexture.preload(`/textures/${page.front}.jpg`);
+  useTexture.preload(`/textures/${page.back}.jpg`);
+  useTexture.preload(`/textures/book-cover-roughness.jpg`);
+});
+
+const Page = ({ number, front, back, page, ...props }) => {
   const [picture, picture2, pictureRoughness] = useTexture([
     `/textures/${front}.jpg`,
     `/textures/${back}.jpg`,
@@ -153,27 +161,24 @@ const Page = ({ number, front, back, ...props }) => {
 
   return (
     <group {...props} ref={group}>
-      <mesh scale={1.1}>
-        <primitive object={manualSkinnedMesh} ref={skinnedMeshRef} />
-        {/* <meshBasicMaterial color="red" /> */}
-      </mesh>
+      {/* <mesh scale={1.1}> */}
+      <primitive
+        object={manualSkinnedMesh}
+        ref={skinnedMeshRef}
+        position-z={-number * PAGE_DEPTH + page * PAGE_DEPTH}
+      />
     </group>
   );
 };
 
 const Book = ({ ...props }) => {
+  const [page] = useAtom(pageAtom);
+
   return (
     <group>
-      {[...pages].map((pageData, index) =>
-        index === 0 ? (
-          <Page
-            key={index}
-            number={index}
-            {...pageData}
-            position-x={index * 0.15}
-          />
-        ) : null
-      )}
+      {[...pages].map((pageData, index) => (
+        <Page key={index} number={index} page={page} {...pageData} />
+      ))}
     </group>
   );
 };
