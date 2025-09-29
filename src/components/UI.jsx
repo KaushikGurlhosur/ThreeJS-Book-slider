@@ -1,4 +1,5 @@
 import { atom, useAtom } from "jotai";
+import { useEffect } from "react";
 
 const pictures = [
   "DSC00680",
@@ -17,6 +18,19 @@ const pictures = [
   "DSC02031",
   "DSC02064",
   "DSC02069",
+  // "main",
+  "mainm",
+  "intro",
+  "htmlCss",
+  "interviewPrep",
+  "javascript",
+  "python",
+  "Radiant",
+  "reactBasics",
+  "ux",
+  "versionControl",
+  "postgreSQL",
+  "capestone",
 ];
 
 export const pageAtom = atom(0);
@@ -40,6 +54,11 @@ pages.push({
 
 export const UI = () => {
   const [page, setPage] = useAtom(pageAtom);
+
+  useEffect(() => {
+    const audio = new Audio("/audios/page-flip-01a.mp3");
+    audio.play();
+  }, [page]);
 
   return (
     <>
