@@ -27,6 +27,7 @@ const pictures = [
   "python",
   "Radiant",
   "reactBasics",
+  "ReactBasicss",
   "ux",
   "versionControl",
   "postgreSQL",
