@@ -177,6 +177,14 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
         insideCurveStrength * insideCurveIntensity * targetRotation -
         outsideCurveStrength * outsideCurveIntensity * targetRotation;
 
+      if (bookClosed) {
+        if (i === 0) {
+          rotationAngle = targetRotation;
+        } else {
+          rotationAngle = 0;
+        }
+      }
+
       easing.dampAngle(
         target.rotation,
         "y",
