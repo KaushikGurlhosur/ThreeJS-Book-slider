@@ -7,6 +7,7 @@ import {
   MeshStandardMaterial,
   Skeleton,
   SkinnedMesh,
+  SRGBColorSpace,
   Uint16BufferAttribute,
   Vector3,
 } from "three";
@@ -85,6 +86,7 @@ const Page = ({ number, front, back, ...props }) => {
       ? [`/textures/book-cover-roughness.jpg`]
       : []),
   ]);
+  picture.colorSpace = picture2.colorSpace = SRGBColorSpace;
 
   const group = useRef();
 
