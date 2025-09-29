@@ -13,7 +13,7 @@ import {
   Vector3,
 } from "three";
 import { Float32BufferAttribute } from "three";
-import { useHelper, useTexture } from "@react-three/drei";
+import { useCursor, useHelper, useTexture } from "@react-three/drei";
 import { SkeletonHelper } from "three";
 import { useFrame } from "@react-three/fiber";
 import { degToRad } from "three/src/math/MathUtils.js";
@@ -71,6 +71,7 @@ pageGeometry.setAttribute(
 );
 
 const whiteColor = new Color("White");
+const emissiveColor = new Color("orange");
 
 const pageMaterials = [
   new MeshStandardMaterial({
@@ -137,6 +138,8 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
         ...(number === 0
           ? { roughnessMap: pictureRoughness }
           : { roughness: 0.1 }),
+        emissive: emissiveColor,
+        emissiveIntensity: 0,
       }),
       new MeshStandardMaterial({
         color: whiteColor,
@@ -144,6 +147,8 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
         ...(number === pages.length - 1
           ? { roughnessMap: pictureRoughness }
           : { roughness: 0.1 }),
+        emissive: emissiveColor,
+        emissiveIntensity: 0,
       }),
     ];
 
@@ -162,6 +167,14 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
     if (!skinnedMeshRef.current) {
       return;
     }
+
+    const emissiveIntensity = highlighted ? 0.22 : 0;
+    skinnedMeshRef.current.material[4].emissiveIntensity =
+      skinnedMeshRef.current.material[5].emissiveIntensity = MathUtils.lerp(
+        skinnedMeshRef.current.material[4].emissiveIntensity,
+        emissiveIntensity,
+        0.1
+      );
 
     if (lastOpened.current !== opened) {
       turnedAt.current = +new Date();
@@ -227,8 +240,27 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
     // bones[4].rotation.y = degToRad(-40);
   });
 
+  const [_, setPage] = useAtom(pageAtom);
+  const [highlighted, setHighlighted] = useState(false);
+  useCursor(highlighted);
+
   return (
-    <group {...props} ref={group}>
+    <group
+      {...props}
+      ref={group}
+      onPointerEnter={(e) => {
+        e.stopPropagation();
+        setHighlighted(true);
+      }}
+      onPointerLeave={(e) => {
+        e.stopPropagation();
+        setHighlighted(false);
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+        setPage(opened ? number : number + 1);
+        setHighlighted(false);
+      }}>
       {/* <mesh scale={1.1}> */}
       <primitive
         object={manualSkinnedMesh}
