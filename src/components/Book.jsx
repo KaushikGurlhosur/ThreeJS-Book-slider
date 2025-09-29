@@ -4,6 +4,7 @@ import {
   Bone,
   BoxGeometry,
   Color,
+  MathUtils,
   MeshStandardMaterial,
   Skeleton,
   SkinnedMesh,
@@ -18,6 +19,12 @@ import { useFrame } from "@react-three/fiber";
 import { degToRad } from "three/src/math/MathUtils.js";
 import { roughness } from "three/examples/jsm/nodes/Nodes.js";
 import { useAtom } from "jotai";
+import { easing } from "maath";
+
+const easingFactor = 0.5; // Controls the speed of the easing
+const insideCurveStrength = 0.18; // Controls the strength of the curve
+const outsideCurveStrength = 0.05; // Controls the strength of the curve
+const turningCurveStrength = 0.09; // Controls the strength of the curve
 
 const PAGE_WIDTH = 1.28;
 const PAGE_HEIGHT = 1.71; // 4:3 aspect ratio
@@ -86,7 +93,7 @@ pages.forEach((page) => {
   useTexture.preload(`/textures/book-cover-roughness.jpg`);
 });
 
-const Page = ({ number, front, back, page, ...props }) => {
+const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
   const [picture, picture2, pictureRoughness] = useTexture([
     `/textures/${front}.jpg`,
     `/textures/${back}.jpg`,
@@ -148,12 +155,36 @@ const Page = ({ number, front, back, page, ...props }) => {
 
   //   useHelper(skinnedMeshRef, SkeletonHelper, "red");
 
-  useFrame(() => {
+  useFrame((_, delta) => {
     if (!skinnedMeshRef.current) {
       return;
     }
 
+    let targetRotation = opened ? -Math.PI / 2 : Math.PI / 2;
+
+    if (!bookClosed) {
+      targetRotation += degToRad(number * 0.8);
+    }
+
     const bones = skinnedMeshRef.current.skeleton.bones;
+    for (let i = 0; i < bones.length; i++) {
+      const target = i === 0 ? group.current : bones[i];
+
+      const insideCurveIntensity = i < 8 ? Math.sin(i * 0.2 + 0.25) : 0;
+      const outsideCurveIntensity = i >= 8 ? Math.cos(i * 0.3 + 0.09) : 0;
+
+      let rotationAngle =
+        insideCurveStrength * insideCurveIntensity * targetRotation -
+        outsideCurveStrength * outsideCurveIntensity * targetRotation;
+
+      easing.dampAngle(
+        target.rotation,
+        "y",
+        rotationAngle,
+        easingFactor,
+        delta
+      );
+    }
 
     // bones[2].rotation.y = degToRad(40);
     // bones[4].rotation.y = degToRad(-40);
@@ -175,9 +206,16 @@ const Book = ({ ...props }) => {
   const [page] = useAtom(pageAtom);
 
   return (
-    <group>
+    <group {...props} rotation-y={-Math.PI / 2}>
       {[...pages].map((pageData, index) => (
-        <Page key={index} number={index} page={page} {...pageData} />
+        <Page
+          key={index}
+          number={index}
+          page={page}
+          opened={page > index}
+          bookClosed={page === 0 || page === pages.length}
+          {...pageData}
+        />
       ))}
     </group>
   );
